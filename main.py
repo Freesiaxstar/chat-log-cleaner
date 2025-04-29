@@ -442,8 +442,8 @@ class CleanerWorker(QObject):
                         async def process_chunk(idx, chunk):
                             await limiter.acquire()
                             for attempt in range(self.retries + 1): # Corrected retry logic to attempt self.retries + 1 times (0 to retries)
-                                # DEBUG: 发起合并块请求哪一块
-                                self.logs.append(f"DEBUG: 文件 {basename} 正在发起块 {idx} 的请求 (第 {attempt+1} 次尝试)")
+                                # INFO: 发起合并块请求哪一块
+                                self.logs.append(f"INFO: 文件 {basename} 正在发起块 {idx} 的请求 (第 {attempt+1} 次尝试)")
                                 payload = {
                                     'model': self.model,
                                     'messages': [ {'role':'system','content':self.sys_msg}, {'role':'user','content':chunk} ]
