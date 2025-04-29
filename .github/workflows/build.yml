@@ -34,13 +34,19 @@ jobs:
 
       - name: Build executable
         run: |
-          pyinstaller --noconfirm --onefile --windowed main.py
+          if [ "${RUNNER_OS}" == "Windows" ]; then
+            pyinstaller --noconfirm --onedir --windowed main.py # Use --onedir for Windows
+          else
+            pyinstaller --noconfirm --onefile --windowed main.py # Keep --onefile for others
+          fi
+        shell: bash
 
       - name: Rename and package executable
         run: |
           if [ "${RUNNER_OS}" == "Windows" ]; then
-            mv dist/main.exe dist/chat-log-cleaner_${VERSION}.exe
-            powershell Compress-Archive -Path dist/chat-log-cleaner_${VERSION}.exe -DestinationPath dist/chat-log-cleaner_${VERSION}-windows.zip
+            # Package the whole directory for --onedir
+            mv dist/main dist/chat-log-cleaner_${VERSION}
+            powershell Compress-Archive -Path dist/chat-log-cleaner_${VERSION} -DestinationPath dist/chat-log-cleaner_${VERSION}-windows.zip
           elif [ "${RUNNER_OS}" == "macOS" ]; then
             mv dist/main.app dist/chat-log-cleaner_${VERSION}.app
             zip -r dist/chat-log-cleaner_${VERSION}-macos.zip dist/chat-log-cleaner_${VERSION}.app
@@ -55,8 +61,8 @@ jobs:
         with:
           name: chat-log-cleaner-${{ matrix.os }}
           path: |
-            dist/*.zip
-            dist/*.tar.gz
+            dist/*.zip # Zip includes Windows (--onedir) and macOS (--onefile .app)
+            dist/*.tar.gz # Linux (--onefile)
 
   release:
     needs: build
@@ -69,6 +75,7 @@ jobs:
       - name: Create GitHub Release and upload assets
         uses: ncipollo/release-action@v1
         with:
+          name: v${{ env.VERSION }} # Add release name using the version
           tag: v${{ env.VERSION }} # Use the environment variable for consistency
           token: ${{ secrets.GITHUB_TOKEN }}
           # Update artifacts glob pattern to match downloaded files within their directories
