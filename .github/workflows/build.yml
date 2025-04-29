@@ -23,6 +23,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      # Cache pip dependencies to speed up installs
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
+      # Cache Nuitka build cache to reuse object files
+      - name: Cache Nuitka
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/nuitka
+          key: ${{ runner.os }}-nuitka
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -39,9 +53,17 @@ jobs:
       - name: Build executable
         run: |
           if [ "${RUNNER_OS}" == "Windows" ]; then
-            # 使用 Nuitka 进行预编译打包，生成本地二进制，以提升启动速度
+            # 使用 Nuitka 进行预编译打包，并行构建、禁用 LTO 以加速编译
             pip install nuitka
-            python -m nuitka --standalone --windows-disable-console --output-dir=dist/main main.py  # Removed unknown qt-plugins plugin flag
+            JOBS=$(nproc || echo $NUMBER_OF_PROCESSORS)
+            python -m nuitka \
+              --standalone \
+              --windows-console-mode=disable \
+              --enable-plugin=pyqt5 \
+              --jobs=$JOBS \
+              --lto=no \
+              --output-dir=dist/main \
+              main.py
           else
             pyinstaller --noconfirm --strip --noupx --onefile --windowed main.py # Remove debug symbols and avoid UPX decompression
           fi
