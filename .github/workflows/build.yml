@@ -69,11 +69,16 @@ jobs:
       - name: Rename and package executable
         run: |
           if [ "${RUNNER_OS}" == "Windows" ]; then
-            # 重命名主可执行文件 (使用 v 前缀)
-            mv dist/main/main.exe "dist/main/chat-log-cleaner-v${VERSION}.exe"
-            # 重命名包含所有文件的目录 (使用 v 前缀)
-            mv dist/main "dist/chat-log-cleaner-v${VERSION}"
-            # 压缩目录 (使用 v 前缀)
+            echo "--- Listing contents of dist/main and dist/main/main.dist before moving --- "
+            ls -lR dist/main || echo "dist/main directory not found or empty."
+            echo "--------------------------------------------------"
+            # Correct path to the executable inside the .dist directory
+            mv dist/main/main.dist/main.exe "dist/main/main.dist/chat-log-cleaner-v${VERSION}.exe"
+            # Rename the actual distribution directory (.dist) which contains the exe and dependencies
+            mv dist/main/main.dist "dist/chat-log-cleaner-v${VERSION}"
+            # Remove the now empty outer 'dist/main' directory if it exists
+            rmdir dist/main || echo "dist/main directory already removed or not empty."
+            # Compress the renamed distribution directory
             powershell Compress-Archive -Path "dist/chat-log-cleaner-v${VERSION}" -DestinationPath "dist/chat-log-cleaner-v${VERSION}-windows.zip"
           elif [ "${RUNNER_OS}" == "macOS" ]; then
             # 处理 Nuitka 生成的 .app 包
