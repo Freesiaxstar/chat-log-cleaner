@@ -21,25 +21,10 @@ jobs:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-
-      # Cache pip dependencies to speed up installs
-      - name: Cache pip
-        uses: actions/cache@v3
+        uses: actions/checkout@v4 # 保持 v4
         with:
-          path: |
-            ~/.cache/pip
-            C:\Users\runneradmin\AppData\Local\pip\Cache
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-
-      # Cache Nuitka build cache to reuse object files
-      - name: Cache Nuitka
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/nuitka
-            build
-          key: ${{ runner.os }}-nuitka
+          submodules: false # 明确禁用子模块处理
+          persist-credentials: false # 尝试禁用凭证持久化
 
       - name: Setup Python
         uses: actions/setup-python@v4
