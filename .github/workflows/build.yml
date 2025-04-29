@@ -1,5 +1,9 @@
 # GitHub Actions workflow: 自动在多个平台上构建可执行文件
 name: Build Multi-Platform
+permissions:
+  contents: write  # 允许创建和更新 release
+  packages: write  # 允许管理发布包
+  actions: read    # 允许读取 Actions 元数据
 
 on:
   push:
