@@ -1,0 +1,6 @@
+pyqt5
+openai
+tiktoken
+aiohttp
+aiolimiter
+requests
