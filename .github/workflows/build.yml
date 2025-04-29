@@ -3,7 +3,7 @@ name: Build Multi-Platform
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
   build:
@@ -47,5 +47,5 @@ jobs:
       - name: Create GitHub Release and upload assets
         uses: ncipollo/release-action@v1
         with:
-          tag: v${{ github.run_number }}
+          tag: v0.1
           files: artifacts/**
