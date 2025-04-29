@@ -41,7 +41,7 @@ jobs:
           if [ "${RUNNER_OS}" == "Windows" ]; then
             # 使用 Nuitka 进行预编译打包，生成本地二进制，以提升启动速度
             pip install nuitka
-            python -m nuitka --standalone --windows-disable-console --enable-plugin=qt-plugins --output-dir=dist/main main.py
+            python -m nuitka --standalone --windows-disable-console --output-dir=dist/main main.py  # Removed unknown qt-plugins plugin flag
           else
             pyinstaller --noconfirm --strip --noupx --onefile --windowed main.py # Remove debug symbols and avoid UPX decompression
           fi
