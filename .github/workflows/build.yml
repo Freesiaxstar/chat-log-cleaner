@@ -46,10 +46,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # Use quiet mode and disable version check to speed up pip upgrade
-          python -m pip install --upgrade pip --disable-pip-version-check -q
-          pip install -r requirements.txt
-          pip install pyinstaller
+          # 升级 pip、setuptools 和 wheel
+          python -m pip install --upgrade pip setuptools wheel
+          # 安装依赖并设置超时、禁用缓存
+          python -m pip install --disable-pip-version-check --default-timeout=60 --no-cache-dir -r requirements.txt
+          # 安装打包工具
+          python -m pip install --no-cache-dir pyinstaller
           # 预编译所有 .py 文件以生成 .pyc，提速首次加载
           python -m compileall .
 
