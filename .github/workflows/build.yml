@@ -50,17 +50,14 @@ jobs:
         run: |
           # 升级 pip、setuptools 和 wheel
           python -m pip install --upgrade pip setuptools wheel
-          # 安装依赖并设置超时，使用缓存
-          python -m pip install --disable-pip-version-check --default-timeout=60 -r requirements.txt
-          # 安装打包工具
-          python -m pip install --no-cache-dir pyinstaller
+          # 安装 Nuitka 和依赖项，移除不必要的 pyinstaller
+          python -m pip install --disable-pip-version-check -r requirements.txt nuitka
           # 预编译所有 .py 文件以生成 .pyc，提速首次加载
           python -m compileall .
 
       - name: Build executable
         run: |
-          # 使用 Nuitka 进行统一打包，保持高性能并行编译
-          pip install nuitka
+          # Nuitka 已在依赖安装步骤中安装
           JOBS=$(nproc || echo $NUMBER_OF_PROCESSORS)
           # 构造基础参数
           ARGS="--standalone --enable-plugin=pyqt5 --jobs=$JOBS --lto=no --output-dir=dist/main main.py"
