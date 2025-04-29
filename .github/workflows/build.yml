@@ -36,29 +36,36 @@ jobs:
         run: |
           pyinstaller --noconfirm --onefile --windowed main.py
 
-      - name: Rename executable
+      - name: Rename and package executable
         run: |
-          if [ "${RUNNER_OS}" == "Windows" ]; then ext=".exe"; else ext=""; fi
-          mv dist/main${ext} dist/chat-log-cleaner_${{ env.VERSION }}${ext}
+          if [ "${RUNNER_OS}" == "Windows" ]; then
+            mv dist/main.exe dist/chat-log-cleaner_${VERSION}.exe
+            powershell Compress-Archive -Path dist/chat-log-cleaner_${VERSION}.exe -DestinationPath dist/chat-log-cleaner_${VERSION}-windows.zip
+          elif [ "${RUNNER_OS}" == "macOS" ]; then
+            mv dist/main.app dist/chat-log-cleaner_${VERSION}.app
+            zip -r dist/chat-log-cleaner_${VERSION}-macos.zip dist/chat-log-cleaner_${VERSION}.app
+          else
+            mv dist/main dist/chat-log-cleaner_${VERSION}
+            tar -czf dist/chat-log-cleaner_${VERSION}-linux.tar.gz -C dist chat-log-cleaner_${VERSION}
+          fi
         shell: bash
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: chat-log-cleaner-${{ matrix.os }}
-          path: dist/*
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
 
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
       - name: Create GitHub Release and upload assets
         uses: ncipollo/release-action@v1
         with:
           tag: v0.1
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: artifacts/**
+          artifacts: chat-log-cleaner-ubuntu-latest,chat-log-cleaner-windows-latest,chat-log-cleaner-macos-latest
+          removeArtifacts: true
