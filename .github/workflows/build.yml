@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     env:
-      VERSION: 0.1
+      VERSION: 0.2 # Updated version to 0.2
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
@@ -62,10 +62,15 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        # No 'name' specified, downloads all artifacts to directories named after the artifact
+
       - name: Create GitHub Release and upload assets
         uses: ncipollo/release-action@v1
         with:
-          tag: v0.1
+          tag: v${{ env.VERSION }} # Use the environment variable for consistency
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: chat-log-cleaner-ubuntu-latest,chat-log-cleaner-windows-latest,chat-log-cleaner-macos-latest
-          removeArtifacts: true
+          # Update artifacts glob pattern to match downloaded files within their directories
+          artifacts: chat-log-cleaner-*/*.*
+          removeArtifacts: true # Keep this if you want the action to remove the downloaded artifact directories after upload
