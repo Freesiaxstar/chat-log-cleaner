@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     env:
-      VERSION: 0.4 # Updated version to 0.4
+      VERSION: 0.5 # Updated version to 0.4
     outputs:
       version: ${{ env.VERSION }} # Expose the version as an output
     strategy:
@@ -33,11 +33,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
+          # 预编译所有 .py 文件以生成 .pyc，提速首次加载
+          python -m compileall .
 
       - name: Build executable
         run: |
           if [ "${RUNNER_OS}" == "Windows" ]; then
-            pyinstaller --noconfirm --noupx --onedir --windowed main.py # Removed --strip on Windows to avoid DLL loading issues
+            # 使用 Nuitka 进行预编译打包，生成本地二进制，以提升启动速度
+            pip install nuitka
+            python -m nuitka --standalone --windows-disable-console --enable-plugin=qt-plugins --output-dir=dist/main main.py
           else
             pyinstaller --noconfirm --strip --noupx --onefile --windowed main.py # Remove debug symbols and avoid UPX decompression
           fi
