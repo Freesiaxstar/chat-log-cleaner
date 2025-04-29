@@ -1,6 +1,6 @@
 # Chat Log Cleaner
 
-版本 Version: 0.1
+版本 Version: 0.4
 
 ## 简介
 
@@ -48,6 +48,7 @@ python main.py --input ./test --output ./test/cleaned
 
 ## 版本历史
 
+- 0.4 - 优化启动性能，改进打包配置（懒加载模块，PyInstaller 去符号、禁 UPX）
 - 0.1 - 初始版本，包含基础清洗功能和多平台打包流程
 
 ---

@@ -1,16 +1,10 @@
 import sys
-import re
-import openai
-import tiktoken
-import asyncio
-import aiohttp
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QSpinBox, QComboBox, QPushButton, QTextEdit, QFileDialog
-from PyQt5.QtCore import QObject, pyqtSignal, QThread
-import requests
 import os
 import json
 import traceback
-import time  # 引入时间模块，用于自定义令牌桶
+import asyncio
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QSpinBox, QComboBox, QPushButton, QTextEdit, QFileDialog
+from PyQt5.QtCore import QObject, pyqtSignal, QThread
 
 # 下拉打开时自动刷新模型
 class ModelComboBox(QComboBox):
@@ -161,6 +155,7 @@ class MainWindow(QMainWindow):
             self.model_edit.setText(text)
 
     def fetch_models(self):
+        import openai, requests
         # 刷新模型列表
         base = self.endpoint_input.text().rstrip('/')
         key = self.key_input.text().strip()
@@ -365,7 +360,7 @@ class CleanerWorker(QObject):
         self.sys_msg = sys_msg
     
     async def do_clean(self):
-        import re, tiktoken, aiohttp, os
+        import re, tiktoken, aiohttp, os, time
         # 初始化日志
         # 使用可覆盖append的日志列表
         class LogList(list):

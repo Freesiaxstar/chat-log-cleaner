@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     env:
-      VERSION: 0.3 # Updated version to 0.3
+      VERSION: 0.4 # Updated version to 0.4
     outputs:
       version: ${{ env.VERSION }} # Expose the version as an output
     strategy:
@@ -37,15 +37,17 @@ jobs:
       - name: Build executable
         run: |
           if [ "${RUNNER_OS}" == "Windows" ]; then
-            pyinstaller --noconfirm --onedir --windowed main.py # Use --onedir for Windows
+            pyinstaller --noconfirm --strip --noupx --onedir --windowed main.py # Use --strip to remove debug symbols and --noupx to avoid UPX overhead
           else
-            pyinstaller --noconfirm --onefile --windowed main.py # Keep --onefile for others
+            pyinstaller --noconfirm --strip --noupx --onefile --windowed main.py # Remove debug symbols and avoid UPX decompression
           fi
         shell: bash
 
       - name: Rename and package executable
         run: |
           if [ "${RUNNER_OS}" == "Windows" ]; then
+            # 重命名主可执行文件
+            mv dist/main/main.exe dist/main/chat-log-cleaner-v${VERSION}.exe
             # Package the whole directory for --onedir
             mv dist/main dist/chat-log-cleaner_${VERSION}
             powershell Compress-Archive -Path dist/chat-log-cleaner_${VERSION} -DestinationPath dist/chat-log-cleaner_${VERSION}-windows.zip
