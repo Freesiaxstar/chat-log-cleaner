@@ -37,7 +37,7 @@ jobs:
       - name: Build executable
         run: |
           if [ "${RUNNER_OS}" == "Windows" ]; then
-            pyinstaller --noconfirm --strip --noupx --onedir --windowed main.py # Use --strip to remove debug symbols and --noupx to avoid UPX overhead
+            pyinstaller --noconfirm --noupx --onedir --windowed main.py # Removed --strip on Windows to avoid DLL loading issues
           else
             pyinstaller --noconfirm --strip --noupx --onefile --windowed main.py # Remove debug symbols and avoid UPX decompression
           fi
