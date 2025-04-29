@@ -14,6 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       VERSION: 0.3 # Updated version to 0.3
+    outputs:
+      version: ${{ env.VERSION }} # Expose the version as an output
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
@@ -74,8 +76,8 @@ jobs:
       - name: Create GitHub Release and upload assets
         uses: ncipollo/release-action@v1
         with:
-          name: v${{ env.VERSION }} # Add release name using the version
-          tag: v${{ env.VERSION }} # Use the environment variable for consistency
+          name: v${{ needs.build.outputs.version }} # Use the output from the build job
+          tag: v${{ needs.build.outputs.version }} # Use the output from the build job
           token: ${{ secrets.GITHUB_TOKEN }}
           # Update artifacts glob pattern to match downloaded files within their directories
           artifacts: chat-log-cleaner-*/*.*
