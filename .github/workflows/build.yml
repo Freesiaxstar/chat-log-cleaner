@@ -52,12 +52,12 @@ jobs:
             JOBS=$(nproc)
           fi
 
-          # 构造基础参数，默认包含通用选项
-          ARGS="--standalone --enable-plugin=pyqt5 --jobs=$JOBS --lto=no --output-dir=dist/main main.py"
+          # 构造基础参数，默认包含通用选项和自动下载确认
+          ARGS="--standalone --enable-plugin=pyqt5 --jobs=$JOBS --lto=no --output-dir=dist/main --assume-yes-for-downloads main.py"
           # Windows 上特殊处理：添加关闭控制台模式
           if [ "${RUNNER_OS}" == "Windows" ]; then
             # 注意：Windows 的 ARGS 覆盖了基础 ARGS，确保包含所有需要的参数
-            ARGS="--standalone --windows-console-mode=disable --enable-plugin=pyqt5 --jobs=$JOBS --lto=no --output-dir=dist/main main.py"
+            ARGS="--standalone --windows-console-mode=disable --enable-plugin=pyqt5 --jobs=$JOBS --lto=no --output-dir=dist/main --assume-yes-for-downloads main.py"
           # macOS 上特殊处理：添加创建 .app 包的选项
           elif [ "${RUNNER_OS}" == "macOS" ]; then
             ARGS="$ARGS --macos-create-app-bundle"
