@@ -60,9 +60,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: chat-log-cleaner-${{ matrix.os }}
-          path: |
-            dist/*.zip # Zip includes Windows (--onedir) and macOS (--onefile .app)
-            dist/*.tar.gz # Linux (--onefile)
+          # Use the correct pattern based on the OS
+          path: ${{ runner.os == 'Linux' && 'dist/*.tar.gz' || 'dist/*.zip' }}
 
   release:
     needs: build
