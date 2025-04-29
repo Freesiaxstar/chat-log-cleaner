@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      VERSION: 0.1
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
@@ -30,6 +32,12 @@ jobs:
         run: |
           pyinstaller --noconfirm --onefile --windowed main.py
 
+      - name: Rename executable
+        run: |
+          if [ "${RUNNER_OS}" == "Windows" ]; then ext=".exe"; else ext=""; fi
+          mv dist/main${ext} dist/chat-log-cleaner_${{ env.VERSION }}${ext}
+        shell: bash
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -48,4 +56,5 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           tag: v0.1
-          files: artifacts/**
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: artifacts/**
