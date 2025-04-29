@@ -34,7 +34,9 @@ jobs:
       - name: Cache Nuitka
         uses: actions/cache@v3
         with:
-          path: ~/.cache/nuitka
+          path: |
+            ~/.cache/nuitka
+            build
           key: ${{ runner.os }}-nuitka
 
       - name: Setup Python
@@ -52,21 +54,16 @@ jobs:
 
       - name: Build executable
         run: |
+          # 使用 Nuitka 进行统一打包，保持高性能并行编译
+          pip install nuitka
+          JOBS=$(nproc || echo $NUMBER_OF_PROCESSORS)
+          # 构造基础参数
+          ARGS="--standalone --enable-plugin=pyqt5 --jobs=$JOBS --lto=no --output-dir=dist/main main.py"
+          # Windows 上添加关闭控制台模式
           if [ "${RUNNER_OS}" == "Windows" ]; then
-            # 使用 Nuitka 进行预编译打包，并行构建、禁用 LTO 以加速编译
-            pip install nuitka
-            JOBS=$(nproc || echo $NUMBER_OF_PROCESSORS)
-            python -m nuitka \
-              --standalone \
-              --windows-console-mode=disable \
-              --enable-plugin=pyqt5 \
-              --jobs=$JOBS \
-              --lto=no \
-              --output-dir=dist/main \
-              main.py
-          else
-            pyinstaller --noconfirm --strip --noupx --onefile --windowed main.py # Remove debug symbols and avoid UPX decompression
+            ARGS="--standalone --windows-console-mode=disable --enable-plugin=pyqt5 --jobs=$JOBS --lto=no --output-dir=dist/main main.py"
           fi
+          python -m nuitka $ARGS
         shell: bash
 
       - name: Rename and package executable
