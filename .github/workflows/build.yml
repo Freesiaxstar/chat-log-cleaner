@@ -43,30 +43,57 @@ jobs:
       - name: Build executable
         run: |
           # Nuitka 已在依赖安装步骤中安装
-          JOBS=$(nproc || echo $NUMBER_OF_PROCESSORS)
-          # 构造基础参数
+          # 根据操作系统确定 CPU 核心数
+          if [ "${RUNNER_OS}" == "macOS" ]; then
+            JOBS=$(sysctl -n hw.ncpu)
+          elif [ "${RUNNER_OS}" == "Windows" ]; then
+            JOBS=$NUMBER_OF_PROCESSORS # Windows 预定义变量
+          else # Linux
+            JOBS=$(nproc)
+          fi
+
+          # 构造基础参数，默认包含通用选项
           ARGS="--standalone --enable-plugin=pyqt5 --jobs=$JOBS --lto=no --output-dir=dist/main main.py"
-          # Windows 上添加关闭控制台模式
+          # Windows 上特殊处理：添加关闭控制台模式
           if [ "${RUNNER_OS}" == "Windows" ]; then
+            # 注意：Windows 的 ARGS 覆盖了基础 ARGS，确保包含所有需要的参数
             ARGS="--standalone --windows-console-mode=disable --enable-plugin=pyqt5 --jobs=$JOBS --lto=no --output-dir=dist/main main.py"
           fi
+          # macOS 上特殊处理：如果需要创建 .app 包 (根据 Nuitka 文档，--standalone 通常不直接创建 .app，除非有特殊配置或插件)
+          # 如果目标是 .app，Nuitka 命令可能需要调整，例如添加 --macos-create-app-bundle
+          # if [ "${RUNNER_OS}" == "macOS" ]; then
+          #   ARGS="$ARGS --macos-create-app-bundle" # 示例，根据实际需要调整
+          # fi
+          echo "Using Nuitka arguments: $ARGS" # 添加日志输出方便调试
           python -m nuitka $ARGS
         shell: bash
 
       - name: Rename and package executable
         run: |
           if [ "${RUNNER_OS}" == "Windows" ]; then
-            # 重命名主可执行文件
-            mv dist/main/main.exe dist/main/chat-log-cleaner-v${VERSION}.exe
-            # Package the whole directory for --onedir
-            mv dist/main dist/chat-log-cleaner_${VERSION}
-            powershell Compress-Archive -Path dist/chat-log-cleaner_${VERSION} -DestinationPath dist/chat-log-cleaner_${VERSION}-windows.zip
+            # 重命名主可执行文件 (使用 v 前缀)
+            mv dist/main/main.exe "dist/main/chat-log-cleaner-v${VERSION}.exe"
+            # 重命名包含所有文件的目录 (使用 v 前缀)
+            mv dist/main "dist/chat-log-cleaner-v${VERSION}"
+            # 压缩目录 (使用 v 前缀)
+            powershell Compress-Archive -Path "dist/chat-log-cleaner-v${VERSION}" -DestinationPath "dist/chat-log-cleaner-v${VERSION}-windows.zip"
           elif [ "${RUNNER_OS}" == "macOS" ]; then
-            mv dist/main.app dist/chat-log-cleaner_${VERSION}.app
-            zip -r dist/chat-log-cleaner_${VERSION}-macos.zip dist/chat-log-cleaner_${VERSION}.app
-          else
-            mv dist/main dist/chat-log-cleaner_${VERSION}
-            tar -czf dist/chat-log-cleaner_${VERSION}-linux.tar.gz -C dist chat-log-cleaner_${VERSION}
+            # 假设 Nuitka 生成了名为 main 的可执行文件或目录，而不是 .app
+            # 如果生成的是 .app 包，则取消下面两行的注释，并注释掉后面处理普通可执行文件的部分
+            # mv dist/main/main.app "dist/chat-log-cleaner-v${VERSION}.app"
+            # zip -r "dist/chat-log-cleaner-v${VERSION}-macos.zip" "dist/chat-log-cleaner-v${VERSION}.app"
+
+            # 如果生成的是普通可执行文件目录 (类似 Linux/Windows 的 --standalone)
+            mv dist/main "dist/chat-log-cleaner-v${VERSION}"
+            # 使用 tar.gz 压缩，更通用
+            tar -czf "dist/chat-log-cleaner-v${VERSION}-macos.tar.gz" -C dist "chat-log-cleaner-v${VERSION}"
+            # 或者如果坚持用 zip
+            # zip -r "dist/chat-log-cleaner-v${VERSION}-macos.zip" "dist/chat-log-cleaner-v${VERSION}"
+          else # Linux
+            # 重命名目录 (使用 v 前缀)
+            mv dist/main "dist/chat-log-cleaner-v${VERSION}"
+            # 压缩目录 (使用 v 前缀)
+            tar -czf "dist/chat-log-cleaner-v${VERSION}-linux.tar.gz" -C dist "chat-log-cleaner-v${VERSION}"
           fi
         shell: bash
 
@@ -74,8 +101,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: chat-log-cleaner-${{ matrix.os }}
-          # Use the correct pattern based on the OS
-          path: ${{ runner.os == 'Linux' && 'dist/*.tar.gz' || 'dist/*.zip' }}
+          # 更新路径以匹配新的命名和可能的 macOS 压缩格式
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
 
   release:
     needs: build
