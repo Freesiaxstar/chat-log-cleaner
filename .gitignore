@@ -10,3 +10,6 @@ venv/
 env/
 
 test/
+
+# Ignore config folder
+/config/
