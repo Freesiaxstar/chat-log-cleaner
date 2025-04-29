@@ -4,13 +4,13 @@ import openai
 import tiktoken
 import asyncio
 import aiohttp
-from aiolimiter import AsyncLimiter
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QSpinBox, QComboBox, QPushButton, QTextEdit, QFileDialog
 from PyQt5.QtCore import QObject, pyqtSignal, QThread
 import requests
 import os
 import json
 import traceback
+import time  # 引入时间模块，用于自定义令牌桶
 
 # 下拉打开时自动刷新模型
 class ModelComboBox(QComboBox):
@@ -366,7 +366,6 @@ class CleanerWorker(QObject):
     
     async def do_clean(self):
         import re, tiktoken, aiohttp, os
-        from aiolimiter import AsyncLimiter
         # 初始化日志
         # 使用可覆盖append的日志列表
         class LogList(list):
@@ -378,6 +377,26 @@ class CleanerWorker(QObject):
                 self.emitter.emit(msg)
         self.logs = LogList(self.log_signal)
         self.logs.append(f"INFO: 开始清洗任务: pattern={self.pattern}, target={self.target}, tol={self.tol}, max_token={self.max_token}, model={self.model}, rpm={self.rpm}, retries={self.retries}")
+        # 自定义令牌桶
+        class TokenBucket:
+            def __init__(self, capacity, refill_rate):
+                self.capacity = capacity
+                self.tokens = capacity  # 初始时令牌桶填满
+                self.refill_rate = refill_rate  # 每秒补充速率
+                self.timestamp = time.monotonic()
+            async def acquire(self):
+                while True:
+                    now = time.monotonic()
+                    elapsed = now - self.timestamp
+                    # 根据时间流逝补充令牌，但不超过容量
+                    self.tokens = min(self.capacity, self.tokens + elapsed * self.refill_rate)
+                    self.timestamp = now
+                    if self.tokens >= 1:
+                        self.tokens -= 1
+                        return
+                    # 等待至下一个令牌可用
+                    await asyncio.sleep((1 - self.tokens) / self.refill_rate)
+
         # 处理多个文件时，按文件写入 cleaned 文件夹
         if self.raw_paths:
             cleaned_dir = os.path.join(os.path.dirname(self.raw_paths[0]), 'cleaned')
@@ -432,7 +451,7 @@ class CleanerWorker(QObject):
                     # INFO: 发起块请求的时候，输出日志
                     self.logs.append(f"INFO: 文件 {basename} 准备向 LLM 发起 {len(merged)} 个块的请求")
                     # 请求 LLM 并收集结果
-                    limiter = AsyncLimiter(self.rpm, 60)
+                    bucket = TokenBucket(self.rpm, self.rpm / 60)  # 自定义令牌桶，60秒内补充 rpm 个令牌
                     # 使用传入的 endpoint 和 api_key
                     url = f"{self.endpoint}/chat/completions"
                     headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
@@ -440,7 +459,7 @@ class CleanerWorker(QObject):
                     async with aiohttp.ClientSession(headers=headers) as session:
                         # 并发请求，每个 chunk 限速到 RPM，并发执行
                         async def process_chunk(idx, chunk):
-                            await limiter.acquire()
+                            await bucket.acquire()  # 获取令牌后再发起请求
                             for attempt in range(self.retries + 1): # Corrected retry logic to attempt self.retries + 1 times (0 to retries)
                                 # INFO: 发起合并块请求哪一块
                                 self.logs.append(f"INFO: 文件 {basename} 正在发起块 {idx} 的请求 (第 {attempt+1} 次尝试)")
@@ -457,8 +476,8 @@ class CleanerWorker(QObject):
                                             data = await resp.json()
                                             # Safer access to response data
                                             content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
-                                            # DEBUG: 接收到请求的时候输出哪一块
-                                            self.logs.append(f"DEBUG: 文件 {basename} 成功接收到块 {idx} 的响应 (第 {attempt+1} 次尝试)")
+                                            # INFO: 接收到请求的时候输出哪一块
+                                            self.logs.append(f"INFO: 文件 {basename} 成功接收到块 {idx} 的响应 (第 {attempt+1} 次尝试)")
                                             return idx, content
                                         else:
                                             error_text = await resp.text()
